@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
-import { User, Building2, Image as ImageIcon, Save, Upload, Edit, X } from 'lucide-react';
+import { User, Building2, Image as ImageIcon, Save, Upload, Edit, X, Lock, Key } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { UserProfile, Empresa } from '../types';
 
@@ -10,13 +10,17 @@ export const Perfil: React.FC = () => {
 
     const [userModalOpen, setUserModalOpen] = useState(false);
     const [companyModalOpen, setCompanyModalOpen] = useState(false);
+    const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
     // Form States
     const [userForm, setUserForm] = useState<Partial<UserProfile>>({});
     const [companyForm, setCompanyForm] = useState<Partial<Empresa>>({});
+    const [passwords, setPasswords] = useState({ new: '', confirm: '' });
 
     const [loading, setLoading] = useState(false);
     const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [passError, setPassError] = useState<string | null>(null);
+    const [passSuccess, setPassSuccess] = useState(false);
 
     // Initial Load & Sync
     useEffect(() => {
@@ -90,6 +94,34 @@ export const Perfil: React.FC = () => {
         setUploadingLogo(true);
         await uploadLogo(e.target.files[0]);
         setUploadingLogo(false);
+    };
+
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPassError(null);
+        setPassSuccess(false);
+
+        if (passwords.new.length < 6) {
+            setPassError("La contraseña debe tener al menos 6 caracteres.");
+            return;
+        }
+
+        if (passwords.new !== passwords.confirm) {
+            setPassError("Las contraseñas no coinciden.");
+            return;
+        }
+
+        setLoading(true);
+        const { error } = await supabase.auth.updateUser({ password: passwords.new });
+
+        if (error) {
+            setPassError(error.message);
+        } else {
+            setPassSuccess(true);
+            setPasswords({ new: '', confirm: '' });
+            setTimeout(() => setPasswordModalOpen(false), 2000);
+        }
+        setLoading(false);
     };
 
     // If user is loaded but NO company, show "Create Company" view
@@ -227,8 +259,27 @@ export const Perfil: React.FC = () => {
                     </div>
                 </div>
 
-                {/* 3. Tarjeta Logo */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 lg:col-span-2">
+                {/* 3. Tarjeta Seguridad */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+                        <Lock size={20} className="text-gray-600" />
+                        <h3 className="font-semibold text-gray-900">Seguridad</h3>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <p className="text-sm text-gray-500">
+                            Administra el acceso a tu cuenta cambiando tu contraseña periódicamente.
+                        </p>
+                        <button
+                            onClick={() => setPasswordModalOpen(true)}
+                            className="w-full mt-2 flex justify-center items-center gap-2 bg-gray-900 hover:bg-black text-white font-medium py-2.5 rounded-lg transition-colors"
+                        >
+                            <Key size={16} /> Cambiar Contraseña
+                        </button>
+                    </div>
+                </div>
+
+                {/* 4. Tarjeta Logo */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200">
                     <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
                         <ImageIcon size={20} className="text-gray-600" />
                         <h3 className="font-semibold text-gray-900">Logo de la Empresa</h3>
@@ -356,6 +407,72 @@ export const Perfil: React.FC = () => {
                                 <button type="button" onClick={() => setCompanyModalOpen(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors">Cancelar</button>
                                 <button type="submit" disabled={loading} className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black font-medium transition-colors shadow-lg shadow-gray-200">
                                     {loading ? 'Guardando...' : 'Guardar Empresa'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {/* MODAL PASSWORD */}
+            {passwordModalOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden relative">
+                        <button onClick={() => setPasswordModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 bg-gray-100 rounded-full">
+                            <X size={20} />
+                        </button>
+
+                        <div className="p-6 border-b border-gray-100">
+                            <h3 className="font-bold text-xl text-gray-900">Cambiar Contraseña</h3>
+                            <p className="text-sm text-gray-500">Ingresa tu nueva clave de acceso</p>
+                        </div>
+
+                        <form onSubmit={handlePasswordChange} className="p-6 space-y-4">
+                            {passError && (
+                                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm border border-red-100 italic">
+                                    {passError}
+                                </div>
+                            )}
+
+                            {passSuccess && (
+                                <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm border border-green-100 font-bold">
+                                    ¡Contraseña actualizada con éxito!
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nueva Contraseña</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                                    <input
+                                        type="password"
+                                        className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-black focus:border-black transition-all"
+                                        value={passwords.new}
+                                        onChange={e => setPasswords({ ...passwords, new: e.target.value })}
+                                        placeholder="Mínimo 6 caracteres"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar Contraseña</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                                    <input
+                                        type="password"
+                                        className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-2.5 focus:ring-2 focus:ring-black focus:border-black transition-all"
+                                        value={passwords.confirm}
+                                        onChange={e => setPasswords({ ...passwords, confirm: e.target.value })}
+                                        placeholder="Repite la contraseña"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex justify-end gap-3">
+                                <button type="button" onClick={() => setPasswordModalOpen(false)} className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition-colors">Cancelar</button>
+                                <button type="submit" disabled={loading || passSuccess} className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-black font-medium transition-colors shadow-lg shadow-gray-200 flex items-center gap-2">
+                                    {loading ? 'Actualizando...' : <><Save size={16} /> Actualizar Clave</>}
                                 </button>
                             </div>
                         </form>
