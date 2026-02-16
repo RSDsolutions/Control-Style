@@ -34,12 +34,14 @@ export const Gastos: React.FC = () => {
         setNewGasto(initialGastoState);
     };
 
+    const [activeTab, setActiveTab] = useState<'OPERATIVOS' | 'ACTIVOS'>('OPERATIVOS');
+
     const categorias: CategoriaGasto[] = [
         'Arriendo', 'Servicios Básicos', 'Internet', 'Sueldos',
         'Transporte', 'Mantenimiento', 'Publicidad / Marketing',
         'Insumos Administrativos', 'Equipamiento', 'Software / Suscripciones',
         'Impuestos', 'Honorarios Profesionales', 'Seguridad',
-        'Limpieza', 'Logística', 'Otros'
+        'Limpieza', 'Logística', 'Otros', 'Compra Materiales', 'CORRECCION_INVENTARIO'
     ];
 
     const frecuencias: FrecuenciaGasto[] = ['Único', 'Diario', 'Semanal', 'Mensual', 'Trimestral', 'Anual'];
@@ -60,202 +62,159 @@ export const Gastos: React.FC = () => {
                 </button>
             </div>
 
-            {/* --- ESTADÍSTICAS DE GASTOS --- */}
+            {/* --- DATA PROCESSING --- */}
             {(() => {
                 const now = new Date();
                 const currentMonth = now.getMonth();
                 const currentYear = now.getFullYear();
-                const prevDate = new Date(currentYear, currentMonth - 1, 1);
-                const prevMonth = prevDate.getMonth();
-                const prevYear = prevDate.getFullYear();
 
-                const gastosMesActual = gastos.filter(g => {
+                // Filter Categories
+                const isAsset = (cat: string) => cat === 'Compra Materiales' || cat === 'CORRECCION_INVENTARIO' || cat === 'Equipamiento';
+
+                // DATA SETS
+                const gastosOperativos = gastos.filter(g => !isAsset(g.categoria));
+                const inversionActivos = gastos.filter(g => isAsset(g.categoria));
+
+                const currentData = activeTab === 'OPERATIVOS' ? gastosOperativos : inversionActivos;
+
+                // STATS (Based on Active Tab to be relevant, or Global? Let's do Global Split)
+
+                const gastOpMes = gastosOperativos.filter(g => {
                     const d = new Date(g.fecha);
                     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
                 });
-                const gastosMesAnterior = gastos.filter(g => {
+                const invMes = inversionActivos.filter(g => {
                     const d = new Date(g.fecha);
-                    return d.getMonth() === prevMonth && d.getFullYear() === prevYear;
+                    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
                 });
 
-                const totalMesActual = gastosMesActual.reduce((acc, g) => acc + Number(g.monto), 0);
-                const totalMesAnterior = gastosMesAnterior.reduce((acc, g) => acc + Number(g.monto), 0);
-                const totalGeneral = gastos.reduce((acc, g) => acc + Number(g.monto), 0);
+                const totalOpMes = gastOpMes.reduce((acc, g) => acc + Number(g.monto), 0);
+                const totalInvMes = invMes.reduce((acc, g) => acc + Number(g.monto), 0);
 
-                // Top categorias
-                const catCount = gastosMesActual.reduce((acc, g) => {
+                // Top Categories (Operativos)
+                const catCount = gastOpMes.reduce((acc, g) => {
                     acc[g.categoria] = (acc[g.categoria] || 0) + Number(g.monto);
                     return acc;
                 }, {} as Record<string, number>);
                 const topCats = Object.entries(catCount).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-                // Factura vs no factura
-                const conFactura = gastosMesActual.filter(g => g.tiene_factura);
-                const sinFactura = gastosMesActual.filter(g => !g.tiene_factura);
-                const montoConFactura = conFactura.reduce((acc, g) => acc + Number(g.monto), 0);
-                const montoSinFactura = sinFactura.reduce((acc, g) => acc + Number(g.monto), 0);
-                const pctFactura = totalMesActual > 0 ? Math.round((montoConFactura / totalMesActual) * 100) : 0;
-
-                // Fijos vs Variables
-                const montoFijos = gastosMesActual.filter(g => g.tipo_gasto === 'Fijo').reduce((acc, g) => acc + Number(g.monto), 0);
-                const montoVariables = gastosMesActual.filter(g => g.tipo_gasto === 'Variable').reduce((acc, g) => acc + Number(g.monto), 0);
-
-                // Cambio mes a mes
-                const cambio = totalMesAnterior > 0 ? ((totalMesActual - totalMesAnterior) / totalMesAnterior * 100) : 0;
-                const mesNombre = now.toLocaleDateString('es-MX', { month: 'long' });
-
                 return (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-                        {/* Gastos del Mes */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-9 h-9 bg-red-100 rounded-lg flex items-center justify-center">
-                                    <Wallet className="text-red-600" size={18} />
+                    <>
+                        {/* KPI CARDS */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                            {/* Card 1: Gasto Operativo Mes */}
+                            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-3 opacity-10">
+                                    <Wallet size={48} className="text-red-600" />
                                 </div>
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Mes Actual</span>
-                            </div>
-                            <p className="text-2xl font-bold text-gray-900">${totalMesActual.toFixed(2)}</p>
-                            <p className="text-xs text-gray-400 mt-1 capitalize">
-                                {gastosMesActual.length} gastos en {mesNombre}
-                            </p>
-                        </div>
-
-                        {/* Top Categorías */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <Tag className="text-blue-600" size={18} />
-                                </div>
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Top Categorías</span>
-                            </div>
-                            <div className="space-y-1">
-                                {topCats.length > 0 ? topCats.map(([cat, monto]) => (
-                                    <div key={cat} className="flex justify-between text-xs">
-                                        <span className="text-gray-600 truncate mr-2">{cat}</span>
-                                        <span className="font-bold text-gray-900">${monto.toFixed(0)}</span>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2 bg-red-50 rounded-lg text-red-600">
+                                        <Wallet size={20} />
                                     </div>
-                                )) : <p className="text-xs text-gray-400">Sin gastos este mes</p>}
+                                    <span className="text-sm font-medium text-gray-500">Gasto Operativo (Mes)</span>
+                                </div>
+                                <p className="text-2xl font-bold text-gray-900">${totalOpMes.toFixed(2)}</p>
+                                <p className="text-xs text-gray-400 mt-1">Salidas puras de dinero (No retornables)</p>
                             </div>
-                        </div>
 
-                        {/* Control Tributario */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
-                                    <FileText className="text-green-600" size={18} />
+                            {/* Card 2: Inversión Activos Mes */}
+                            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm relative overflow-hidden">
+                                <div className="absolute top-0 right-0 p-3 opacity-10">
+                                    <Building2 size={48} className="text-blue-600" />
                                 </div>
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tributario</span>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                                        <Tag size={20} />
+                                    </div>
+                                    <span className="text-sm font-medium text-gray-500">Inversión / Activos (Mes)</span>
+                                </div>
+                                <p className="text-2xl font-bold text-gray-900">${totalInvMes.toFixed(2)}</p>
+                                <p className="text-xs text-gray-400 mt-1">Compras de material y equipos (Capitalizable)</p>
                             </div>
-                            <div className="flex gap-1 h-3 rounded-full overflow-hidden bg-gray-100 mb-2">
-                                {montoConFactura > 0 && <div className="bg-green-500" style={{ width: `${pctFactura}%` }}></div>}
-                                {montoSinFactura > 0 && <div className="bg-gray-300" style={{ width: `${100 - pctFactura}%` }}></div>}
-                            </div>
-                            <p className="text-xs text-gray-500">
-                                <span className="text-green-600 font-bold">{pctFactura}%</span> con factura (${montoConFactura.toFixed(0)})
-                            </p>
-                            <p className="text-xs text-gray-400">
-                                Sin factura: ${montoSinFactura.toFixed(0)}
-                            </p>
-                        </div>
 
-                        {/* Fijos vs Variables */}
-                        <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center">
-                                    <Receipt className="text-purple-600" size={18} />
+                            {/* Card 3: Top Categoria Op */}
+                            <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <span className="text-xs font-bold text-gray-400 uppercase">Top Gastos Operativos</span>
                                 </div>
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tipo Gasto</span>
-                            </div>
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-gray-600">🔒 Fijos</span>
-                                    <span className="font-bold text-gray-900">${montoFijos.toFixed(0)}</span>
-                                </div>
-                                <div className="flex justify-between text-xs">
-                                    <span className="text-gray-600">📊 Variables</span>
-                                    <span className="font-bold text-gray-900">${montoVariables.toFixed(0)}</span>
+                                <div className="space-y-1">
+                                    {topCats.length > 0 ? topCats.map(([cat, monto]) => (
+                                        <div key={cat} className="flex justify-between text-xs">
+                                            <span className="text-gray-600 truncate">{cat}</span>
+                                            <span className="font-bold text-gray-900">${monto.toFixed(0)}</span>
+                                        </div>
+                                    )) : <span className="text-xs text-gray-300">Sin datos</span>}
                                 </div>
                             </div>
                         </div>
 
-                        {/* Comparación Mensual */}
-                        <div className={`rounded-xl border p-5 shadow-sm ${totalMesAnterior === 0 ? 'bg-gray-50 border-gray-200' :
-                                cambio <= 0 ? 'bg-green-50 border-green-200' : cambio <= 20 ? 'bg-yellow-50 border-yellow-200' : 'bg-red-50 border-red-200'
-                            }`}>
-                            <div className="flex items-center gap-3 mb-3">
-                                <div className="w-9 h-9 bg-white/60 rounded-lg flex items-center justify-center">
-                                    <Calendar className={
-                                        totalMesAnterior === 0 ? 'text-gray-500' :
-                                            cambio <= 0 ? 'text-green-600' : 'text-red-600'
-                                    } size={18} />
-                                </div>
-                                <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">vs Mes Ant.</span>
-                            </div>
-                            <p className={`text-2xl font-bold ${totalMesAnterior === 0 ? 'text-gray-600' :
-                                    cambio <= 0 ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                {totalMesAnterior > 0 ? `${cambio > 0 ? '+' : ''}${cambio.toFixed(0)}%` : '—'}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                                {totalMesAnterior > 0
-                                    ? `Anterior: $${totalMesAnterior.toFixed(0)}`
-                                    : 'Sin datos previos'
-                                }
-                            </p>
+                        {/* TABS NAVIGATION */}
+                        <div className="flex items-center gap-4 border-b border-gray-200 mb-6">
+                            <button
+                                onClick={() => setActiveTab('OPERATIVOS')}
+                                className={`pb-3 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'OPERATIVOS' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                            >
+                                <Receipt size={18} /> Gastos Operativos
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('ACTIVOS')}
+                                className={`pb-3 px-2 text-sm font-bold flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'ACTIVOS' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                            >
+                                <Building2 size={18} /> Inversión y Activos
+                            </button>
                         </div>
-                    </div>
-                );
-            })()}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {gastos.map((gasto) => (
-                    <div key={gasto.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative overflow-hidden group hover:shadow-md transition-shadow">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 border border-gray-100">
-                                    <Receipt size={20} />
+                        {/* LIST */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {currentData.length > 0 ? currentData.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()).map((gasto) => (
+                                <div key={gasto.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 relative overflow-hidden group hover:shadow-md transition-shadow">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm ${activeTab === 'OPERATIVOS' ? 'bg-red-500' : 'bg-blue-600'}`}>
+                                                {activeTab === 'OPERATIVOS' ? <Receipt size={20} /> : <Tag size={20} />}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-gray-900 leading-tight">{gasto.nombre}</h3>
+                                                <span className="text-xs text-gray-400 font-medium">{gasto.categoria}</span>
+                                            </div>
+                                        </div>
+                                        {gasto.tiene_factura && (
+                                            <div className="bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-bold flex items-center gap-1 border border-green-100">
+                                                <Check size={10} /> SRI
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="space-y-2 mb-4">
+                                        <div className="flex justify-between text-xs text-gray-500">
+                                            <span>Frecuencia:</span>
+                                            <span className="font-medium text-gray-700">{gasto.frecuencia}</span>
+                                        </div>
+                                        <div className="flex justify-between text-xs text-gray-500">
+                                            <span>Área:</span>
+                                            <span className="font-medium text-gray-700">{gasto.area}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-3 border-t border-gray-100 flex justify-between items-end">
+                                        <div className="text-xs text-gray-400">
+                                            {gasto.fecha}
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-xs text-gray-400 block mb-0.5">{gasto.metodo_pago}</span>
+                                            <span className="text-xl font-bold text-gray-900">${gasto.monto.toFixed(2)}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-gray-900 leading-tight">{gasto.nombre}</h3>
-                                    <span className="text-xs text-gray-400 font-medium">{gasto.categoria}</span>
-                                </div>
-                            </div>
-                            {gasto.tiene_factura && (
-                                <div className="bg-green-50 text-green-700 px-2 py-1 rounded text-xs font-bold flex items-center gap-1 border border-green-100">
-                                    <Check size={10} /> SRI
+                            )) : (
+                                <div className="col-span-full py-12 text-center bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                                    <p className="text-gray-400">No hay registros en esta categoría.</p>
                                 </div>
                             )}
                         </div>
-
-                        <div className="space-y-2 mb-4">
-                            <div className="flex justify-between text-xs text-gray-500">
-                                <span>Frecuencia:</span>
-                                <span className="font-medium text-gray-700">{gasto.frecuencia}</span>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-500">
-                                <span>Área:</span>
-                                <span className="font-medium text-gray-700">{gasto.area}</span>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-500">
-                                <span>Tipo:</span>
-                                <span className={`font-medium px-1.5 rounded ${gasto.tipo_gasto === 'Fijo' ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-700'}`}>
-                                    {gasto.tipo_gasto}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="pt-3 border-t border-gray-100 flex justify-between items-end">
-                            <div className="text-xs text-gray-400">
-                                {gasto.fecha}
-                            </div>
-                            <div className="text-right">
-                                <span className="text-xs text-gray-400 block mb-0.5">{gasto.metodo_pago}</span>
-                                <span className="text-xl font-bold text-gray-900">${gasto.monto.toFixed(2)}</span>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
+                    </>
+                );
+            })()}
 
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">

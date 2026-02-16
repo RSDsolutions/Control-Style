@@ -27,15 +27,25 @@ interface AppState {
   // Auth Actions
   fetchUserData: (userId: string) => Promise<void>;
   updateEmpresa: (updates: Partial<import('../types').Empresa>) => Promise<void>;
+  createEmpresa: (empresa: Omit<import('../types').Empresa, 'id' | 'created_at' | 'logo_url'>) => Promise<void>;
   updateUser: (updates: Partial<import('../types').UserProfile>) => Promise<void>;
   uploadLogo: (file: File) => Promise<void>;
   logout: () => void;
 
   // Actions
   fetchInitialData: () => Promise<void>;
-  agregarMaterial: (material: Omit<Material, 'id'>) => Promise<Material | null>;
+  agregarMaterial: (material: Omit<Material, 'id' | 'empresa_id' | 'created_at'>, fechaCreacion?: string) => Promise<Material | null>;
   registrarCompraMaterial: (id: string, cantidad: number, costo_total: number) => Promise<void>;
   registrarMerma: (id: string, cantidad: number) => Promise<void>;
+  registrarIngresoActivo: (
+    materialData: { nombre: string; tipo: import('../types').Material['tipo']; unidad_medida: import('../types').Material['unidad_medida'] },
+    cantidad: number,
+    costo_total: number,
+    notas: string,
+    ordenOrigenId?: string,
+    fechaCreacion?: string
+  ) => Promise<void>;
+  registrarCorreccionIngreso: (materialId: string, cantidad: number, motivo: string) => Promise<number>;
 
   // Productos Actions
   agregarProducto: (producto: Omit<Producto, 'id'>) => Promise<void>;
@@ -159,6 +169,29 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  createEmpresa: async (empresaData) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('empresas')
+        .insert({ ...empresaData, user_id: user.id })
+        .select()
+        .single();
+
+      if (error) throw error;
+      if (data) {
+        set({ empresaId: data.id, empresa: data });
+        await get().fetchInitialData();
+      }
+    } catch (error) {
+      console.error("Error creating company:", error);
+      alert("Error al crear empresa");
+      throw error;
+    }
+  },
+
   updateUser: async (updates) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -249,7 +282,7 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  agregarMaterial: async (material) => {
+  agregarMaterial: async (material, fechaCreacion) => {
     const { empresaId } = get();
     if (!empresaId) {
       alert("Error: No hay sesión de empresa activa. Intente recargar.");
@@ -257,9 +290,9 @@ export const useStore = create<AppState>((set, get) => ({
     }
 
     try {
-      const newMaterial = await inventoryService.addMaterial({ ...material, empresa_id: empresaId });
+      const newMaterial = await inventoryService.addMaterial({ ...material, empresa_id: empresaId }, fechaCreacion);
       // Ensure created_at is present (fallback to client time if DB doesn't return it immediately)
-      const materialWithDate = { ...newMaterial, created_at: newMaterial.created_at || new Date().toISOString() };
+      const materialWithDate = { ...newMaterial, created_at: newMaterial.created_at || fechaCreacion || new Date().toISOString() };
       set(state => ({ inventario: [...state.inventario, materialWithDate] }));
       return materialWithDate;
     } catch (error) {
@@ -313,6 +346,40 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (error) {
       console.error("Error registering merma:", error);
       alert("Error al registrar merma");
+    }
+  },
+
+  registrarIngresoActivo: async (materialData, cantidad, costo_total, notas, ordenOrigenId, fechaCreacion) => {
+    const { empresaId } = get();
+    if (!empresaId) return;
+
+    try {
+      await inventoryService.registrarIngresoActivo(materialData, cantidad, costo_total, notas, empresaId, ordenOrigenId, fechaCreacion);
+
+      // Refresh Inventory
+      const updatedInventory = await inventoryService.getMateriales(empresaId);
+      set({ inventario: updatedInventory });
+    } catch (error) {
+      console.error("Error registering active asset:", error);
+      alert("Error al registrar ingreso de activo");
+    }
+  },
+
+  registrarCorreccionIngreso: async (materialId, cantidad, motivo) => {
+    const { empresaId } = get();
+    if (!empresaId) throw new Error("No empresa session");
+
+    try {
+      const costoTotal = await inventoryService.registrarCorreccionIngreso(materialId, cantidad, motivo, empresaId);
+
+      // Refresh Inventory
+      const updatedInventory = await inventoryService.getMateriales(empresaId);
+      set({ inventario: updatedInventory });
+
+      return costoTotal;
+    } catch (error) {
+      console.error("Error correcting inventory:", error);
+      throw error;
     }
   },
 

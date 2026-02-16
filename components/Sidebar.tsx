@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ShoppingCart, Archive, Receipt, Tag, LogOut, Building2, Bell, Palette } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, Archive, Receipt, Tag, LogOut, Building2, Bell, Palette, FileText } from 'lucide-react';
 import { useStore } from '../store/useStore';
 
 interface SidebarProps {
@@ -18,6 +18,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
     { id: 'productos', label: 'Productos', icon: <Tag size={20} /> },
     { id: 'inventario', label: 'Inventario', icon: <Archive size={20} /> },
     { id: 'gastos', label: 'Gastos Operativos', icon: <Receipt size={20} /> },
+
+    { id: 'auditoria', label: 'Auditoría', icon: <FileText size={20} /> },
     { id: 'alertas', label: 'Centro de Alertas', icon: <Bell size={20} /> },
     { id: 'perfil', label: 'Perfil', icon: <Building2 size={20} /> },
   ];

@@ -1,6 +1,6 @@
 export type TipoMaterial =
   | 'Cuero' | 'Cuero sintético' | 'Tela' | 'Espuma' | 'Hilo'
-  | 'Pegamento' | 'PVC' | 'Alcántara' | 'Vinil' | 'Otro';
+  | 'Pegamento' | 'PVC' | 'Alcántara' | 'Vinil' | 'Producto Terminado' | 'Otro';
 
 export type UnidadMedida = 'Metro' | 'Unidad' | 'Litro' | 'Rollo' | 'Par' | 'Kilogramo' | 'Hoja' | 'Galón';
 
@@ -103,11 +103,13 @@ export type CategoriaGasto =
   | 'Transporte' | 'Mantenimiento' | 'Publicidad / Marketing'
   | 'Insumos Administrativos' | 'Equipamiento' | 'Software / Suscripciones'
   | 'Impuestos' | 'Honorarios Profesionales' | 'Seguridad'
-  | 'Limpieza' | 'Logística' | 'Otros' | 'Compra Materiales'; // Added Compra Materiales
+  | 'Limpieza' | 'Logística' | 'Otros' | 'Compra Materiales' | 'CORRECCION_INVENTARIO'; // Added CORRECCION_INVENTARIO
 
 export type FrecuenciaGasto = 'Único' | 'Diario' | 'Semanal' | 'Mensual' | 'Trimestral' | 'Anual';
 export type AreaGasto = 'Producción' | 'Administración' | 'Ventas' | 'Logística' | 'Marketing' | 'General';
 export type TipoGasto = 'Fijo' | 'Variable';
+// ...
+
 
 export interface GastoOperativo {
   id: string;
@@ -200,7 +202,7 @@ export interface UserProfile {
   created_at?: string;
 }
 
-export type TipoMovimiento = 'COMPRA' | 'CONSUMO' | 'AJUSTE' | 'MERMA';
+export type TipoMovimiento = 'COMPRA' | 'CONSUMO' | 'AJUSTE' | 'MERMA' | 'INGRESO_ACTIVO' | 'CORRECCION_INGRESO';
 
 export interface MovimientoInventario {
   id: string;
@@ -209,5 +211,7 @@ export interface MovimientoInventario {
   cantidad: number;
   costo_total: number;
   fecha: string;
+  origen?: string; // e.g. 'Activo', 'Compra', etc.
+  referencia_id?: string;
   empresa_id?: string;
 }

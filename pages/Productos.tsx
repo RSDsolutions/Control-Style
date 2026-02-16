@@ -10,6 +10,7 @@ export const Productos: React.FC = () => {
     const eliminarProducto = useStore(state => state.eliminarProducto);
 
     const [showModal, setShowModal] = useState(false);
+    const [selectedProducto, setSelectedProducto] = useState<import('../types').Producto | null>(null);
 
     // Form State
     const [nombre, setNombre] = useState('');
@@ -52,6 +53,7 @@ export const Productos: React.FC = () => {
             nombre,
             descripcion,
             precio_sugerido: precioSugerido,
+            stock: 0,
             receta
         });
         setShowModal(false);
@@ -80,13 +82,15 @@ export const Productos: React.FC = () => {
                     const utilidadEstimada = prod.precio_sugerido - costoEstimado;
 
                     return (
-                        <div key={prod.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col relative overflow-hidden">
+                        <div key={prod.id}
+                            onClick={() => setSelectedProducto(prod)}
+                            className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col relative overflow-hidden cursor-pointer hover:shadow-md transition-shadow group">
                             <div className="absolute top-0 right-0 w-24 h-24 bg-primary opacity-5 rounded-bl-full -mr-5 -mt-5"></div>
                             <div className="flex items-start justify-between mb-4 relative z-10">
                                 <div className="p-2 bg-gray-100 rounded-lg text-gray-700">
                                     <Tag size={24} />
                                 </div>
-                                <button onClick={() => eliminarProducto(prod.id)} className="text-gray-400 hover:text-red-500 transition-colors">
+                                <button onClick={(e) => { e.stopPropagation(); eliminarProducto(prod.id); }} className="text-gray-400 hover:text-red-500 transition-colors">
                                     <Trash2 size={18} />
                                 </button>
                             </div>
@@ -217,6 +221,86 @@ export const Productos: React.FC = () => {
                                 <button type="submit" className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">Guardar Producto</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {selectedProducto && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm" onClick={() => setSelectedProducto(null)}>
+                    <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h3 className="text-2xl font-bold text-gray-900">{selectedProducto.nombre}</h3>
+                                <p className="text-gray-500 text-sm mt-1">Detalle del Producto</p>
+                            </div>
+                            <button onClick={() => setSelectedProducto(null)} className="text-gray-400 hover:text-gray-600">
+                                <span className="text-2xl">&times;</span>
+                            </button>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div>
+                                <h4 className="font-bold text-gray-700 mb-2">Descripción</h4>
+                                <p className="text-gray-600 bg-gray-50 p-4 rounded-lg text-sm leading-relaxed border border-gray-100">
+                                    {selectedProducto.descripcion || "Sin descripción."}
+                                </p>
+                            </div>
+
+                            <div>
+                                <h4 className="font-bold text-gray-700 mb-2 flex items-center gap-2">
+                                    <Box size={16} /> Receta / Materiales
+                                </h4>
+                                <div className="border rounded-lg overflow-hidden">
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-gray-50 text-gray-600 font-medium border-b">
+                                            <tr>
+                                                <th className="px-3 py-2">Material</th>
+                                                <th className="px-3 py-2 text-right">Cant.</th>
+                                                <th className="px-3 py-2 text-right">Costo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                            {selectedProducto.receta.map((item, idx) => {
+                                                const mat = inventario.find(m => m.id === item.material_id);
+                                                const costo = mat ? item.cantidad * mat.costo_unitario_promedio : 0;
+                                                return (
+                                                    <tr key={idx} className="hover:bg-gray-50">
+                                                        <td className="px-3 py-2 text-gray-800">{mat?.nombre || 'Desconocido'}</td>
+                                                        <td className="px-3 py-2 text-right text-gray-600">{item.cantidad} {mat?.unidad_medida}</td>
+                                                        <td className="px-3 py-2 text-right font-medium text-gray-700">${costo.toFixed(2)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                        <tfoot className="bg-gray-50 font-bold text-gray-900 border-t">
+                                            <tr>
+                                                <td className="px-3 py-2" colSpan={2}>Costo Total Estimado</td>
+                                                <td className="px-3 py-2 text-right text-red-600">${calcularCostoEstimado(selectedProducto.receta).toFixed(2)}</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+                                <div>
+                                    <span className="block text-gray-500 text-xs uppercase font-bold tracking-wider">Precio Sugerido</span>
+                                    <span className="text-xl font-bold text-gray-900">${selectedProducto.precio_sugerido.toFixed(2)}</span>
+                                </div>
+                                <div>
+                                    <span className="block text-gray-500 text-xs uppercase font-bold tracking-wider">Utilidad Estimada</span>
+                                    <span className="text-xl font-bold text-green-600">
+                                        ${(selectedProducto.precio_sugerido - calcularCostoEstimado(selectedProducto.receta)).toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 pt-4 border-t border-gray-100 flex justify-end">
+                            <button onClick={() => setSelectedProducto(null)} className="px-6 py-2 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
+                                Cerrar
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

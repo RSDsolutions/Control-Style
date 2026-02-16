@@ -8,9 +8,6 @@ interface RegisterProps {
 }
 
 export const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
-    const [empresa, setEmpresa] = useState('');
-    const [ruc, setRuc] = useState('');
-    const [direccion, setDireccion] = useState('');
     const [cedula, setCedula] = useState('');
     const [nombreUsuario, setNombreUsuario] = useState(''); // New field
 
@@ -24,9 +21,6 @@ export const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
     // Test Mode Autofill
     useEffect(() => {
         if (email === 'thislopi99@gmail.com') {
-            setEmpresa('Carsuit Test S.A.');
-            setRuc('1799999999001');
-            setDireccion('Av. Amazonas N34-451 y República, Quito');
             setCedula('1723456789');
             setNombreUsuario('Admin Carsuit');
         }
@@ -42,14 +36,6 @@ export const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
-                options: {
-                    data: {
-                        nombre_empresa: empresa,
-                        ruc: ruc,
-                        direccion: direccion,
-                        cedula_representante: cedula
-                    }
-                }
             });
 
             if (authError) throw authError;
@@ -153,47 +139,6 @@ export const Register: React.FC<RegisterProps> = ({ onLoginClick }) => {
                             </div>
                         </div>
 
-                        {/* SECCION EMPRESA */}
-                        <div>
-                            <p className="text-xs font-bold text-gray-500 uppercase mb-3 mt-4">Datos de la Empresa</p>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Empresa</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full rounded-lg border-gray-300 focus:ring-gray-900 focus:border-gray-900"
-                                        placeholder="Ej: Tapicería El Maestro"
-                                        value={empresa}
-                                        onChange={(e) => setEmpresa(e.target.value)}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">RUC</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full rounded-lg border-gray-300 focus:ring-gray-900 focus:border-gray-900"
-                                        placeholder="Ej: 1799999999001"
-                                        value={ruc}
-                                        onChange={(e) => setRuc(e.target.value)}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        className="w-full rounded-lg border-gray-300 focus:ring-gray-900 focus:border-gray-900"
-                                        placeholder="Ej: Av. Principal y Calle 2"
-                                        value={direccion}
-                                        onChange={(e) => setDireccion(e.target.value)}
-                                    />
-                                </div>
-                            </div>
-                        </div>
 
                         <button
                             type="submit"

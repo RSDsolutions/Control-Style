@@ -184,7 +184,7 @@ export const Ordenes: React.FC = () => {
             const base64 = await loadImageAsBase64(empresa.logo_url);
             if (base64) {
                 try {
-                    doc.addImage(base64, 'PNG', 10, 8, 25, 25);
+                    doc.addImage(base64, 'PNG', 10, 8, 40, 20); // Horizontal Logo
                     logoAdded = true;
                 } catch (e) {
                     console.warn('Logo could not be added:', e);
@@ -275,7 +275,17 @@ export const Ordenes: React.FC = () => {
         // Financials (right side, using autoTable for clean alignment)
         const totalVal = Number(orden.precio_venta).toFixed(2);
         const abonoVal = Number(orden.abono || orden.anticipo).toFixed(2);
-        const saldoVal = Number(orden.saldo).toFixed(2);
+
+        // Logic for Paid orders: Show the balance that was paid off
+        let saldoVal = Number(orden.saldo).toFixed(2); // Default
+        let saldoLabel = 'SALDO:';
+        let isPaid = orden.estado === 'PAGADO';
+
+        if (isPaid) {
+            const theoreticalSaldo = Number(orden.precio_venta) - Number(orden.abono || orden.anticipo);
+            saldoVal = theoreticalSaldo.toFixed(2);
+            saldoLabel = 'SALDO (PAGADO):';
+        }
 
         autoTable(doc, {
             startY: y - 3,
@@ -284,17 +294,21 @@ export const Ordenes: React.FC = () => {
             body: [
                 ['TOTAL:', `$${totalVal}`],
                 ['ABONO:', `$${abonoVal}`],
-                ['SALDO:', `$${saldoVal}`],
+                [saldoLabel, `$${saldoVal}`],
             ],
             theme: 'plain',
             styles: { fontSize: 11, fontStyle: 'bold', cellPadding: 1.5 },
             columnStyles: {
-                0: { halign: 'right', cellWidth: 30 },
+                0: { halign: 'right', cellWidth: 40 }, // Increased width for longer label
                 1: { halign: 'right', cellWidth: 30 },
             },
             didParseCell: (data: any) => {
                 if (data.row.index === 2) {
-                    data.cell.styles.textColor = [200, 0, 0];
+                    if (isPaid) {
+                        data.cell.styles.textColor = [0, 128, 0]; // Green
+                    } else {
+                        data.cell.styles.textColor = [200, 0, 0]; // Red
+                    }
                 }
             }
         });
@@ -922,19 +936,17 @@ export const Ordenes: React.FC = () => {
                                             </div>
                                         </label>
 
-                                        {/* Option 3: Error datos (solo si no PAGADO) */}
-                                        {!isPagado && (
-                                            <label className={`block p-4 rounded-lg border-2 cursor-pointer transition-all ${deleteType === 'datos' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
-                                                }`}>
-                                                <div className="flex items-start gap-3">
-                                                    <input type="radio" name="deleteType" checked={deleteType === 'datos'} onChange={() => setDeleteType('datos')} className="mt-1" />
-                                                    <div>
-                                                        <span className="font-semibold text-gray-900">❌ Error en ingreso de datos</span>
-                                                        <p className="text-xs text-gray-500 mt-1">Se <strong>elimina por completo</strong> la orden. Se revierten materiales al inventario y se borran pagos, movimientos y la orden misma.</p>
-                                                    </div>
+                                        {/* Option 3: Error datos (Available for ALL orders now) */}
+                                        <label className={`block p-4 rounded-lg border-2 cursor-pointer transition-all ${deleteType === 'datos' ? 'border-red-500 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                                            }`}>
+                                            <div className="flex items-start gap-3">
+                                                <input type="radio" name="deleteType" checked={deleteType === 'datos'} onChange={() => setDeleteType('datos')} className="mt-1" />
+                                                <div>
+                                                    <span className="font-semibold text-gray-900">❌ Borrar totalmente (Error datos / Cancelación total)</span>
+                                                    <p className="text-xs text-gray-500 mt-1">Se <strong>elimina por completo</strong> la orden. Se revierten materiales al inventario, se eliminan los ingresos registrados y se borra la orden.</p>
                                                 </div>
-                                            </label>
-                                        )}
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
 

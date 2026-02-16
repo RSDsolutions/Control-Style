@@ -36,3 +36,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# temp diagnostic scripts
+test-*.js
+raw-*.js
+payload.json
+check_column.ts

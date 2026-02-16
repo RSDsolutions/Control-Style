@@ -92,10 +92,72 @@ export const Perfil: React.FC = () => {
         setUploadingLogo(false);
     };
 
-    if (!empresa) return <div className="p-8">Cargando perfil...</div>;
+    // If user is loaded but NO company, show "Create Company" view
+    if (userProfile && !empresa && !loading) {
+        return (
+            <div className="p-8 h-full flex flex-col items-center justify-center bg-gray-50">
+                <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
+                    <div className="flex justify-center mb-6">
+                        <div className="bg-blue-600 p-4 rounded-full">
+                            <Building2 className="text-white w-8 h-8" />
+                        </div>
+                    </div>
+                    <h2 className="text-2xl font-bold text-center text-gray-900 mb-2">Bienvenido, {userProfile.nombre}</h2>
+                    <p className="text-center text-gray-500 mb-8">Para comenzar, necesitamos registrar los datos de tu empresa o negocio.</p>
+
+                    <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        setLoading(true);
+                        // Use local createEmpresa from store
+                        const create = useStore.getState().createEmpresa;
+                        await create({
+                            nombre_empresa: companyForm.nombre_empresa || 'Mi Empresa',
+                            ruc: companyForm.ruc || '',
+                            direccion: companyForm.direccion || '',
+                            cedula_representante: userProfile.cedula,
+                            user_id: userProfile.id
+                        });
+                        setLoading(false);
+                    }} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Empresa</label>
+                            <input className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-600 outline-none"
+                                required
+                                placeholder="Ej: Tapicería El Maestro"
+                                value={companyForm.nombre_empresa || ''}
+                                onChange={e => setCompanyForm({ ...companyForm, nombre_empresa: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">RUC (Opcional)</label>
+                            <input className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-600 outline-none"
+                                placeholder="1790000000001"
+                                value={companyForm.ruc || ''}
+                                onChange={e => setCompanyForm({ ...companyForm, ruc: e.target.value })}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Dirección (Opcional)</label>
+                            <input className="w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-blue-600 outline-none"
+                                placeholder="Ciudad, Sector..."
+                                value={companyForm.direccion || ''}
+                                onChange={e => setCompanyForm({ ...companyForm, direccion: e.target.value })}
+                            />
+                        </div>
+                        <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-colors mt-4">
+                            {loading ? 'Creando...' : 'Comenzar a Usar el Sistema'}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    if (!empresa) return <div className="p-8 flex items-center justify-center h-full"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>;
 
     return (
         <div className="p-8 h-full overflow-y-auto">
+            {/* ... Rest of existing Perfil code ... */}
             <div className="mb-8">
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                     <User className="text-primary" /> Perfil y Configuración

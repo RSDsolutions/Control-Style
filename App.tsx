@@ -10,8 +10,10 @@ import { Register } from './pages/Register';
 import { CentroAlertas } from './pages/CentroAlertas';
 import { Disenos } from './pages/Disenos';
 import { Perfil } from './pages/Perfil';
+import { Auditoria } from './pages/Auditoria';
 import { useStore } from './store/useStore';
 import { supabase } from './lib/supabase';
+import { AssistantWidget } from './components/Assistant/AssistantWidget';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -69,6 +71,7 @@ function App() {
       case 'gastos': return <Gastos />;
       case 'alertas': return <CentroAlertas />;
       case 'perfil': return <Perfil />;
+      case 'auditoria': return <Auditoria />;
       default: return <Dashboard />;
     }
   };
@@ -79,6 +82,7 @@ function App() {
       <main className="flex-1 overflow-hidden h-full">
         {renderPage()}
       </main>
+      {/* <AssistantWidget /> */}
     </div>
   );
 }

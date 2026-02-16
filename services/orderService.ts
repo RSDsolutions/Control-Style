@@ -54,23 +54,44 @@ export const orderService = {
                 await supabase.from('ordenes').delete().eq('id', newOrder.id);
                 throw itemsError;
             }
+        }
 
-            // 3. Record Inventory Consumption (COGS)
+        // 3. Record Inventory Consumption and Update Stock
+        if (items && items.length > 0) {
             const movements = items.map(item => ({
                 material_id: item.material_id,
                 tipo: 'CONSUMO',
                 cantidad: item.cantidad,
-                costo_total: item.costo_calculado, // This is the total cost for this item line
+                costo_total: item.costo_calculado,
                 fecha: new Date().toISOString(),
                 referencia_id: newOrder.id,
                 empresa_id: empresaId
             }));
 
+            // A. Log Movement
             const { error: moveError } = await supabase
                 .from('movimientos_inventario')
                 .insert(movements);
 
             if (moveError) console.error("Error logging consumption:", moveError);
+
+            // B. Update Actual Stock
+            for (const item of items) {
+                // Fetch current stock first to ensure atomic-like update (or use RPC if available, but simple select-update for now)
+                const { data: material } = await supabase
+                    .from('materiales')
+                    .select('cantidad_actual')
+                    .eq('id', item.material_id)
+                    .single();
+
+                if (material) {
+                    const newStock = (material.cantidad_actual || 0) - item.cantidad;
+                    await supabase
+                        .from('materiales')
+                        .update({ cantidad_actual: newStock })
+                        .eq('id', item.material_id);
+                }
+            }
         }
 
         return { ...newOrder, materiales_usados: items };

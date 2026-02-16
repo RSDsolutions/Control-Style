@@ -10,7 +10,9 @@ export const Disenos: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     const [file, setFile] = useState<File | null>(null);
+
     const [uploading, setUploading] = useState(false);
+    const [viewingDesign, setViewingDesign] = useState<Diseno | null>(null);
 
     const initialFormState: Omit<Diseno, 'id' | 'created_at' | 'empresa_id'> = {
         nombre: '',
@@ -126,73 +128,64 @@ export const Disenos: React.FC = () => {
                     </div>
                 </div>
 
-                <table className="w-full text-left">
-                    <thead className="bg-gray-50 border-b border-gray-100">
-                        <tr>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Nombre</th>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Costura</th>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Patrón</th>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase">Imagen</th>
-                            <th className="px-6 py-3 text-xs font-bold text-gray-500 uppercase text-center">Estado</th>
-                            <th className="px-6 py-3 text-right">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                        {filteredDisenos.map((item) => (
-                            <tr key={item.id} className="hover:bg-gray-50 group">
-                                <td className="px-6 py-4 font-medium text-gray-900">
-                                    {item.nombre}
-                                    {item.observaciones && (
-                                        <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">{item.observaciones}</p>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4 text-gray-600">{item.tipo_costura}</td>
-                                <td className="px-6 py-4 text-gray-600">{item.tipo_patron}</td>
-                                <td className="px-6 py-4 text-gray-600">
-                                    {item.imagen_url ? (
-                                        <img src={item.imagen_url} alt={item.nombre} className="w-12 h-12 rounded object-cover border border-gray-200" />
-                                    ) : (
-                                        <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                                            <Palette size={20} />
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="px-6 py-4 text-center">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredDisenos.map((item) => (
+                        <div key={item.id}
+                            className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300 group cursor-pointer"
+                            onClick={() => setViewingDesign(item)}
+                        >
+                            {/* Image Area */}
+                            <div className="aspect-video w-full bg-gray-100 relative group-hover:opacity-95 transition-opacity">
+                                {item.imagen_url ? (
+                                    <img src={item.imagen_url} alt={item.nombre} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-gray-300 bg-gray-50">
+                                        <Palette size={48} strokeWidth={1} />
+                                    </div>
+                                )}
+                                {/* Active Badge overlay */}
+                                <div className="absolute top-2 right-2">
                                     <button
-                                        onClick={() => toggleActivo(item)}
-                                        className={`transition-colors ${item.activo ? 'text-green-500 hover:text-green-600' : 'text-gray-300 hover:text-gray-400'}`}
-                                        title={item.activo ? 'Desactivar' : 'Activar'}
+                                        onClick={(e) => { e.stopPropagation(); toggleActivo(item); }}
+                                        className={`p-1.5 rounded-full backdrop-blur-md shadow-sm transition-all transform hover:scale-105 ${item.activo ? 'bg-white/90 text-green-600' : 'bg-white/90 text-gray-400 grayscale'}`}
+                                        title={item.activo ? 'Activo' : 'Inactivo'}
                                     >
-                                        {item.activo ? <CheckCircle2 size={20} /> : <XCircle size={20} />}
+                                        {item.activo ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
                                     </button>
-                                </td>
-                                <td className="px-6 py-4 text-right flex justify-end gap-2">
-                                    <button
-                                        onClick={() => handleOpenModal(item)}
-                                        className="text-gray-400 hover:text-blue-600 p-1 transition-colors"
-                                        title="Editar"
-                                    >
-                                        <Edit size={18} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(item.id)}
-                                        className="text-gray-400 hover:text-red-500 p-1 transition-colors"
-                                        title="Eliminar"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {filteredDisenos.length === 0 && (
-                            <tr>
-                                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                                    No se encontraron diseños.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                                </div>
+                            </div>
+
+                            {/* Content Area */}
+                            <div className="p-4 space-y-3">
+                                <div className="flex justify-between items-start gap-2">
+                                    <h3 className="font-bold text-gray-900 text-lg leading-tight line-clamp-1" title={item.nombre}>{item.nombre}</h3>
+                                    <div className="flex gap-1 shrink-0">
+                                        <button onClick={(e) => { e.stopPropagation(); handleOpenModal(item); }} className="text-gray-400 hover:text-blue-600 p-1 rounded hover:bg-blue-50 transition-colors"><Edit size={16} /></button>
+                                        <button onClick={(e) => { e.stopPropagation(); handleDelete(item.id); }} className="text-gray-400 hover:text-red-500 p-1 rounded hover:bg-red-50 transition-colors"><Trash2 size={16} /></button>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2 text-xs">
+                                    <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-full font-medium">{item.tipo_costura}</span>
+                                    <span className="px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-100 rounded-full font-medium">{item.tipo_patron}</span>
+                                </div>
+
+                                {item.observaciones && (
+                                    <div className="pt-2 border-t border-gray-100">
+                                        <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">{item.observaciones}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+
+                    {filteredDisenos.length === 0 && (
+                        <div className="col-span-full py-16 text-center text-gray-400 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                            <Palette className="mx-auto mb-3 text-gray-300" size={48} />
+                            <p className="font-medium">No se encontraron diseños que coincidan con la búsqueda.</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {showModal && (
@@ -307,6 +300,64 @@ export const Disenos: React.FC = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+
+            {/* DETAIL MODAL */}
+            {viewingDesign && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setViewingDesign(null)}>
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl overflow-hidden max-h-[90vh] flex flex-col md:flex-row animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+                        {/* Image Side */}
+                        <div className="md:w-2/3 bg-gray-100 flex items-center justify-center relative overflow-hidden group">
+                            {viewingDesign.imagen_url ? (
+                                <img src={viewingDesign.imagen_url} alt={viewingDesign.nombre} className="w-full h-full object-contain max-h-[50vh] md:max-h-full" />
+                            ) : (
+                                <Palette size={80} className="text-gray-300" strokeWidth={1} />
+                            )}
+                            <button onClick={() => setViewingDesign(null)} className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full backdrop-blur-md transition-colors z-10">
+                                <XCircle size={24} />
+                            </button>
+                        </div>
+
+                        {/* Details Side */}
+                        <div className="md:w-1/3 p-6 md:p-8 flex flex-col h-full overflow-y-auto bg-white border-l border-gray-100 relative">
+                            <div className="flex-1 space-y-8">
+                                <div>
+                                    <h2 className="text-3xl font-bold text-gray-900 leading-tight mb-4">{viewingDesign.nombre}</h2>
+                                    <div className="flex flex-wrap gap-2">
+                                        <span className="px-3 py-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg font-medium text-sm">{viewingDesign.tipo_costura}</span>
+                                        <span className="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg font-medium text-sm">{viewingDesign.tipo_patron}</span>
+                                        {viewingDesign.activo ? (
+                                            <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-100 rounded-lg font-medium text-sm flex items-center gap-1"><CheckCircle2 size={14} /> Activo</span>
+                                        ) : (
+                                            <span className="px-3 py-1 bg-red-50 text-red-700 border border-red-100 rounded-lg font-medium text-sm flex items-center gap-1"><XCircle size={14} /> Inactivo</span>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                        Descripción / Detalles
+                                    </h3>
+                                    <div className="prose prose-sm text-gray-600 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                        <p className="whitespace-pre-wrap leading-relaxed text-base">
+                                            {viewingDesign.observaciones || <span className="text-gray-400 italic">Sin descripción detallada.</span>}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="pt-8 mt-auto">
+                                <button
+                                    onClick={() => { setViewingDesign(null); handleOpenModal(viewingDesign); }}
+                                    className="w-full bg-gray-900 hover:bg-black text-white px-4 py-3.5 rounded-xl font-medium transition-all shadow-lg shadow-gray-900/10 hover:shadow-gray-900/20 flex items-center justify-center gap-2 active:scale-[0.98]"
+                                >
+                                    <Edit size={20} /> Editar Diseño
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
