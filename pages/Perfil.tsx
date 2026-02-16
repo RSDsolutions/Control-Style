@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 import { UserProfile, Empresa } from '../types';
 
 export const Perfil: React.FC = () => {
-    const { empresa, userProfile, updateEmpresa, updateUser, uploadLogo, fetchUserData } = useStore();
+    const { empresa, userProfile, updateEmpresa, updateUser, uploadLogo, uploadAvatar, fetchUserData } = useStore();
     const [currentUser, setCurrentUser] = useState<any>(null);
 
     const [userModalOpen, setUserModalOpen] = useState(false);
@@ -19,6 +19,7 @@ export const Perfil: React.FC = () => {
 
     const [loading, setLoading] = useState(false);
     const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [uploadingAvatar, setUploadingAvatar] = useState(false);
     const [passError, setPassError] = useState<string | null>(null);
     const [passSuccess, setPassSuccess] = useState(false);
 
@@ -94,6 +95,13 @@ export const Perfil: React.FC = () => {
         setUploadingLogo(true);
         await uploadLogo(e.target.files[0]);
         setUploadingLogo(false);
+    };
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) return;
+        setUploadingAvatar(true);
+        await uploadAvatar(e.target.files[0]);
+        setUploadingAvatar(false);
     };
 
     const handlePasswordChange = async (e: React.FormEvent) => {
@@ -207,25 +215,49 @@ export const Perfil: React.FC = () => {
                             <h3 className="font-semibold text-gray-900">Datos del Usuario</h3>
                         </div>
                     </div>
-                    <div className="p-6 space-y-4">
-                        <div>
-                            <span className="text-xs text-gray-500 uppercase font-bold">Nombre</span>
-                            <p className="text-gray-900 font-medium">{userProfile?.nombre || 'No registrado'}</p>
+                    <div className="p-6">
+                        <div className="flex flex-col items-center mb-6">
+                            <div className="relative group">
+                                <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
+                                    {userProfile?.avatar_url ? (
+                                        <img src={userProfile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <User size={40} className="text-gray-300" />
+                                    )}
+                                    {uploadingAvatar && (
+                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent animate-spin rounded-full"></div>
+                                        </div>
+                                    )}
+                                </div>
+                                <label className="absolute bottom-0 right-0 bg-primary text-white p-2 rounded-full shadow-lg cursor-pointer hover:bg-primary/90 transition-colors">
+                                    <Upload size={14} />
+                                    <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={uploadingAvatar} />
+                                </label>
+                            </div>
+                            <p className="text-xs text-gray-400 mt-2">Formatos: PNG, JPG.</p>
                         </div>
-                        <div>
-                            <span className="text-xs text-gray-500 uppercase font-bold">Cédula</span>
-                            <p className="text-gray-900 font-medium">{userProfile?.cedula || 'No registrada'}</p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <span className="text-xs text-gray-500 uppercase font-bold">Nombre</span>
+                                <p className="text-gray-900 font-medium">{userProfile?.nombre || 'No registrado'}</p>
+                            </div>
+                            <div>
+                                <span className="text-xs text-gray-500 uppercase font-bold">Cédula</span>
+                                <p className="text-gray-900 font-medium">{userProfile?.cedula || 'No registrada'}</p>
+                            </div>
+                            <div>
+                                <span className="text-xs text-gray-500 uppercase font-bold">Correo Electrónico</span>
+                                <p className="text-gray-900 font-medium">{currentUser?.email}</p>
+                            </div>
+                            <button
+                                onClick={() => setUserModalOpen(true)}
+                                className="w-full mt-4 flex justify-center items-center gap-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 rounded-lg transition-colors"
+                            >
+                                <Edit size={16} /> Editar Datos
+                            </button>
                         </div>
-                        <div>
-                            <span className="text-xs text-gray-500 uppercase font-bold">Correo Electrónico</span>
-                            <p className="text-gray-900 font-medium">{currentUser?.email}</p>
-                        </div>
-                        <button
-                            onClick={() => setUserModalOpen(true)}
-                            className="w-full mt-4 flex justify-center items-center gap-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 rounded-lg transition-colors"
-                        >
-                            <Edit size={16} /> Editar Datos
-                        </button>
                     </div>
                 </div>
 

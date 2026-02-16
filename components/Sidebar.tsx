@@ -9,6 +9,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
   const empresaNombre = useStore(state => state.empresa?.nombre_empresa);
+  const userProfile = useStore(state => state.userProfile);
   const logout = useStore(state => state.logout);
 
   const menuItems = [
@@ -91,14 +92,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
 
       <div className="p-4 border-t border-gray-800">
         <div className="flex items-center gap-3">
-          <img
-            src="https://picsum.photos/100/100"
-            alt="User"
-            className="w-10 h-10 rounded-full border border-gray-600"
-          />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-white">Administrador</p>
-            <p className="text-xs text-gray-400">{empresaNombre || 'Empresa'}</p>
+          <div className="w-10 h-10 rounded-full border border-gray-600 overflow-hidden bg-gray-700 flex items-center justify-center">
+            {userProfile?.avatar_url ? (
+              <img
+                src={userProfile.avatar_url}
+                alt="User"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <Building2 size={20} className="text-gray-400" />
+            )}
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <p className="text-sm font-medium text-white truncate">
+              Administrador {userProfile?.nombre?.split(' ')[0] || ''}
+            </p>
+            <p className="text-xs text-gray-400 truncate">{empresaNombre || 'Empresa'}</p>
           </div>
           <button onClick={handleLogout} title="Cerrar Sesión">
             <LogOut size={18} className="text-gray-500 hover:text-red-400 cursor-pointer transition-colors" />

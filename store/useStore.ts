@@ -30,6 +30,7 @@ interface AppState {
   createEmpresa: (empresa: Omit<import('../types').Empresa, 'id' | 'created_at' | 'logo_url'>) => Promise<void>;
   updateUser: (updates: Partial<import('../types').UserProfile>) => Promise<void>;
   uploadLogo: (file: File) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<void>;
   logout: () => void;
 
   // Actions
@@ -242,6 +243,36 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (error) {
       console.error("Error uploading logo:", error);
       alert("Error al subir logo");
+    }
+  },
+
+  uploadAvatar: async (file) => {
+    const { userProfile, updateUser } = get();
+    if (!userProfile?.id) return;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userProfile.id}/${Date.now()}.${fileExt}`;
+      const filePath = fileName;
+
+      // Upload to 'user_avatars' bucket
+      const { error: uploadError } = await supabase.storage
+        .from('user_avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Get Public URL
+      const { data } = supabase.storage
+        .from('user_avatars')
+        .getPublicUrl(filePath);
+
+      // Update User Profile
+      await get().updateUser({ avatar_url: data.publicUrl });
+
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      alert("Error al subir foto de perfil");
     }
   },
 

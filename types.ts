@@ -199,6 +199,7 @@ export interface UserProfile {
   nombre: string;
   cedula: string;
   email?: string;
+  avatar_url?: string;
   created_at?: string;
 }
 
